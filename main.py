@@ -2,6 +2,10 @@ from flask import Flask, render_template, request, url_for, redirect, flash, sen
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret-key-goes-here'
@@ -14,9 +18,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy()
 db.init_app(app)
 
+@login_manager.user_loader
+def load_user(user_id):
+    return db.get_or_404(User, user_id)
 
 # CREATE TABLE IN DB
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
@@ -25,6 +32,7 @@ class User(db.Model):
 
 with app.app_context():
     db.create_all()
+
 
 
 @app.route('/')
@@ -44,12 +52,20 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
+        login_user(new_user)
+
         return render_template('secrets.html', name=request.form.get('name'))
     return render_template("register.html")
 
 
-@app.route('/login')
+@app.route('/login', methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        email = request.form.get('email')
+        user = db.session.execute(db.select(User).where(User.email == email)).scalar()
+        if check_password_hash(user.password, request.form.get('password')):
+            login_user(user)
+            return redirect(url_for('secrets'))
     return render_template("login.html")
 
 
