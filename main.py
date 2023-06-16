@@ -18,6 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy()
 db.init_app(app)
 
+# SET UP FLASK LOGIN MANAGER
 @login_manager.user_loader
 def load_user(user_id):
     return db.get_or_404(User, user_id)
