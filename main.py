@@ -61,12 +61,16 @@ def register():
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
+    error = None
     if request.method == "POST":
         email = request.form.get('email')
         user = db.session.execute(db.select(User).where(User.email == email)).scalar()
         if check_password_hash(user.password, request.form.get('password')):
+            flash('You were successfully logged in')
             login_user(user)
             return redirect(url_for('secrets'))
+        else:
+            error = 'Invalid credentials'
     return render_template("login.html")
 
 
